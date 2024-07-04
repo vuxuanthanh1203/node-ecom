@@ -3,7 +3,7 @@
 const { model, Schema, Types } = require("mongoose");
 
 const DOCUMENT_NAME = "Shop";
-const CONNECTION_NAME = "Shops";
+const COLLECTION_NAME = "Shops";
 
 // Declare the Schema of the Mongo model
 var shopSchema = new Schema(
@@ -38,7 +38,7 @@ var shopSchema = new Schema(
   },
   {
     timestamps: true,
-    collection: CONNECTION_NAME,
+    collection: COLLECTION_NAME,
   }
 );
 

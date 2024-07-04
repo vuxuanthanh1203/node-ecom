@@ -3,7 +3,7 @@
 const { Schema, model } = require("mongoose");
 
 const DOCUMENT_NAME = "Key";
-const CONNECTION_NAME = "Keys";
+const COLLECTION_NAME = "Keys";
 
 // Declare the Schema of the Mongo model
 var keyTokenSchema = new Schema(
@@ -27,7 +27,7 @@ var keyTokenSchema = new Schema(
     },
   },
   {
-    collation: CONNECTION_NAME,
+    collection: COLLECTION_NAME,
     timestamps: true,
   }
 );
