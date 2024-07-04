@@ -1,16 +1,14 @@
 "user strict";
 
 const AuthService = require("../services/auth");
+const { CREATED } = require("../core/success.response");
 
 class AuthController {
   signUp = async (req, res, next) => {
-    try {
-      const result = await AuthService.signUp(req.body);
-
-      return res.status(201).json(result);
-    } catch (error) {
-      next(error);
-    }
+    new CREATED({
+      message: "SignUp success!",
+      metadata: await AuthService.signUp(req.body),
+    }).send(res);
   };
 }
 
