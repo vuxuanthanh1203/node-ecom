@@ -1,7 +1,6 @@
 "use strict";
 
 const { AccountRoleEnum } = require("../common/enum");
-const { HTTP_STATUS, HTTP_RESPONSE } = require("../common/http-response");
 const shopModel = require("../models/shop.model");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
@@ -24,44 +23,69 @@ class AuthService {
       roles: [AccountRoleEnum.SHOP],
     });
 
-    if (newShop) {
-      const privateKey = crypto.randomBytes(64).toString("hex");
-      const publicKey = crypto.randomBytes(64).toString("hex");
+    if (!newShop) throw new BadRequestError("SignUp Failed!");
 
-      const keyStore = await KeyTokenService.createKeyToken({
-        userId: newShop._id,
-        publicKey,
-        privateKey,
-      });
+    const privateKey = crypto.randomBytes(64).toString("hex");
+    const publicKey = crypto.randomBytes(64).toString("hex");
 
-      if (!keyStore) {
-        throw new BadRequestError("keyStore Error!");
-      }
+    const keyStore = await KeyTokenService.createKeyToken({
+      userId: newShop._id,
+      publicKey,
+      privateKey,
+    });
 
-      const tokens = await createTokenPair(
-        { userId: newShop._id, email },
-        publicKey,
-        privateKey
-      );
-      console.log("Created Token Success: ", tokens);
-
-      return {
-        status: HTTP_STATUS.CREATED,
-        code: HTTP_RESPONSE.AUTH.CREATE_KEY_SUCCESS.CODE,
-        message: HTTP_RESPONSE.AUTH.CREATE_KEY_SUCCESS.MESSAGE,
-        metadata: {
-          shop: getInfoData({
-            fields: ["_id", "name", "email"],
-            object: newShop,
-          }),
-          tokens,
-        },
-      };
+    if (!keyStore) {
+      throw new BadRequestError("keyStore Error!");
     }
 
+    const tokens = await createTokenPair(
+      { userId: newShop._id, email },
+      publicKey,
+      privateKey
+    );
+    console.log("Created Token Success: ", tokens);
+
     return {
-      status: HTTP_STATUS.SUCCESS,
-      metadata: null,
+      metadata: {
+        shop: getInfoData({
+          fields: ["_id", "name", "email"],
+          object: newShop,
+        }),
+        tokens,
+      },
+    };
+  };
+
+  static login = async ({ email, password, refreshToken = null }) => {
+    const existedShop = await shopModel.findOne({ email }).lean();
+    if (!existedShop) throw new BadRequestError("Shop not exist!");
+
+    const match = bcrypt.compare(password, existedShop.password);
+    if (!match) throw new AuthFailureError("Authentication Error");
+
+    const privateKey = crypto.randomBytes(64).toString("hex");
+    const publicKey = crypto.randomBytes(64).toString("hex");
+
+    const { _id: userId } = existedShop;
+    const tokens = await createTokenPair(
+      { userId, email },
+      publicKey,
+      privateKey
+    );
+
+    await KeyTokenService.createKeyToken({
+      refreshToken: tokens.refreshToken,
+      privateKey,
+      publicKey,
+      userId,
+    });
+
+    return {
+      shop: getInfoData({
+        fields: ["_id", "name", "email"],
+        object: existedShop,
+      }),
+      tokens,
     };
   };
 }
